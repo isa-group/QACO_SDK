@@ -1,6 +1,6 @@
 # QACO SDK
 
-**Quality-Aware Composition Optimization (QACO)** is a framework that helps you define, validate, and solve composition problems involving tasks, candidate services, constraints, and optimization preferences. This SDK provides:
+**QoS-Aware COmposition (QACO)** is a process that helps you define, validate, and solve web service composition problems involving tasks, candidate services, constraints, QoS features and optimization preferences. This SDK provides:
 
 - A **rich domain model** for QACO problems (Tasks, Features, Constraints, etc.).  
 - A **validation** layer to ensure inputs (QACOProblem, CompositeWebService) and outputs (Binding, BindingSpace) are consistent.  
