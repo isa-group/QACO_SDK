@@ -1,6 +1,5 @@
 com/example/qaco/domain/problem/constraints/ComposeConstraint.class
 com/example/qaco/domain/problem/constraints/FeatureConstraint.class
-com/example/qaco/solver/QACOProblemSolver.class
 com/example/qaco/domain/cws/FeatureValue.class
 com/example/qaco/domain/problem/AggregateDomainType.class
 com/example/qaco/domain/problem/Problem.class
@@ -19,7 +18,6 @@ com/example/qaco/domain/problem/constraints/Constraint.class
 com/example/qaco/domain/problem/AggregateDomain.class
 com/example/qaco/domain/problem/constraints/ConditionalConstraint.class
 com/example/qaco/domain/cws/graph/GraphNode.class
-com/example/qaco/solver/AbstractQACOProblemSolver.class
 com/example/qaco/domain/problem/constraints/Operator.class
 com/example/qaco/domain/binding/Binding.class
 com/example/qaco/domain/QACOProblem.class
