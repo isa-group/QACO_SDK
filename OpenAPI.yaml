@@ -1,0 +1,632 @@
+openapi: 3.1.1
+info:
+  title: QACO API
+  version: 1.0.0
+  description: >
+    An asynchronous API for solving QACO problems and retrieving CWS binding spaces.
+
+servers:
+  - url: https://api.example.com
+
+paths:
+  /qaco/solve:
+    post:
+      summary: Submit a QACOProblem for solving
+      description: >
+        Asynchronously solves a QACOProblem.  
+        - Validates the input QACOProblem (tasks, features, constraints, etc.).  
+        - Returns a job identifier if validation passes.  
+        - Returns a 400 error if validation fails (e.g., missing tasks, missing CompositeWebService).
+      operationId: submitQACOProblem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QACOProblem'
+      responses:
+        '202':
+          description: Accepted - The problem is being processed asynchronously.
+          headers:
+            Location:
+              description: URL to check the job status and retrieve the result.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        '400':
+          description: Validation Error - The QACOProblem failed one or more solver checks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                missingProblem:
+                  summary: Missing Problem object
+                  value:
+                    errorCode: "VALIDATION_ERROR"
+                    errorMessage: "Problem definition is missing in QACOProblem."
+                    validationErrors:
+                      - "QACOProblem.problem must not be null."
+                noTasks:
+                  summary: No tasks in the CompositeWebService
+                  value:
+                    errorCode: "VALIDATION_ERROR"
+                    errorMessage: "Validation failed for CompositeWebService."
+                    validationErrors:
+                      - "CompositeWebService must have at least one Task."
+                invalidConstraint:
+                  summary: Constraint references a Feature not in the CWS
+                  value:
+                    errorCode: "VALIDATION_ERROR"
+                    errorMessage: "Validation failed for Constraint."
+                    validationErrors:
+                      - "FeatureConstraint references a Feature not in the CWS: 'ResponseTime'"
+
+  /qaco/solve/{jobId}:
+    get:
+      summary: Check status or retrieve solution for a QACOProblem
+      description: >
+        Retrieves the job status.  
+        - If the job is still running, returns 202 (Accepted).  
+        - If the job has completed, returns 200 with the solution (one or more Bindings).
+      operationId: getQACOProblemSolution
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: The identifier returned by POST /qaco/solve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The solution (one or more Bindings) is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BindingList'
+        '202':
+          description: The job is still processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+        '404':
+          description: Job not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /qaco/bindingSpace:
+    post:
+      summary: Submit a CompositeWebService to retrieve binding space
+      description: >
+        Asynchronously calculates the binding space for a given CompositeWebService.
+        Returns a job identifier if validation passes, or a 400 error if validation fails.
+      operationId: submitBindingSpaceRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompositeWebService'
+      responses:
+        '202':
+          description: Accepted - The binding space is being computed asynchronously.
+          headers:
+            Location:
+              description: URL to check the job status and retrieve the result.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        '400':
+          description: Validation Error - The CompositeWebService is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                noCandidateServices:
+                  summary: No candidate services in the CWS
+                  value:
+                    errorCode: "VALIDATION_ERROR"
+                    errorMessage: "Validation failed for CompositeWebService."
+                    validationErrors:
+                      - "CompositeWebService must have at least one CandidateService."
+                missingStartEnd:
+                  summary: Graph missing START/END node
+                  value:
+                    errorCode: "VALIDATION_ERROR"
+                    errorMessage: "Validation failed for Graph."
+                    validationErrors:
+                      - "Graph must contain at least one START node."
+                      - "Graph must contain at least one END node."
+
+  /qaco/bindingSpace/{jobId}:
+    get:
+      summary: Check status or retrieve binding space
+      description: >
+        Retrieves the job status for the binding space request.  
+        - If the job is still running, returns 202 (Accepted).  
+        - If the job has completed, returns 200 with the BindingSpace.
+      operationId: getBindingSpace
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: The identifier returned by POST /qaco/bindingSpace
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The binding space is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BindingSpace'
+        '202':
+          description: The job is still processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+        '404':
+          description: Job not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    # ---------------------------
+    # Domain Schemas (simplified)
+    # ---------------------------
+    QACOProblem:
+      type: object
+      properties:
+        compositeWebService:
+          $ref: '#/components/schemas/CompositeWebService'
+        problem:
+          $ref: '#/components/schemas/Problem'
+      required: [compositeWebService, problem]
+
+    CompositeWebService:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        candidateServices:
+          type: array
+          items:
+            $ref: '#/components/schemas/CandidateService'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        graph:
+          $ref: '#/components/schemas/Graph'
+      required: [tasks, candidateServices]
+
+    Task:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required: [name]
+
+    CandidateService:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        provider:
+          type: string
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+      required: [name]
+
+    Feature:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureValue'
+
+    FeatureValue:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/CandidateService'
+        value:
+          type: number
+          format: double
+
+    Graph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphEdge'
+        probabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Probability'
+
+    GraphNode:
+      type: object
+      properties:
+        label:
+          type: string
+        type:
+          $ref: '#/components/schemas/GraphNodeType'
+
+    GraphEdge:
+      type: object
+      properties:
+        source:
+          $ref: '#/components/schemas/GraphNode'
+        target:
+          $ref: '#/components/schemas/GraphNode'
+        label:
+          type: string
+
+    GraphNodeType:
+      type: string
+      enum: [ACTIVITY, EXCLUSIVE_GATE, PARALLEL_GATE, START, END]
+
+    Probability:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProbabilityNode'
+
+    ProbabilityNode:
+      type: object
+      properties:
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProbabilityEdge'
+
+    ProbabilityEdge:
+      type: object
+      properties:
+        value:
+          type: number
+          format: double
+
+    Problem:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        optimization:
+          $ref: '#/components/schemas/Optimization'
+        constraints:
+          type: array
+          items:
+            $ref: '#/components/schemas/Constraint'  # uses the discriminator-based constraint
+      required: [name]
+
+    Optimization:
+      type: object
+      properties:
+        preferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/Preference'
+        aggregateDomains:
+          type: array
+          items:
+            $ref: '#/components/schemas/AggregateDomain'
+
+    Preference:
+      type: object
+      properties:
+        feature:
+          type: string
+        weight:
+          type: number
+          format: double
+
+    AggregateDomain:
+      type: object
+      properties:
+        aggregatorOperation:
+          type: array
+          items:
+            $ref: '#/components/schemas/AggregatorOperation'
+        aggregateDomainType:
+          $ref: '#/components/schemas/AggregateDomainType'
+
+    AggregatorOperation:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        operation:
+          type: string
+
+    AggregateDomainType:
+      type: string
+      enum: [SEQUENCE, LOOP, BRANCH, FORK]
+
+    # -----------------------------------
+    # Detailed Constraint Schemas (with discriminator)
+    # -----------------------------------
+    Constraint:
+      oneOf:
+        - $ref: '#/components/schemas/GlobalConstraint'
+        - $ref: '#/components/schemas/LocalConstraint'
+        - $ref: '#/components/schemas/ComposeConstraint'
+        - $ref: '#/components/schemas/ConditionalConstraint'
+        - $ref: '#/components/schemas/BindingConstraint'
+      discriminator:
+        propertyName: type
+        mapping:
+          GlobalConstraint: '#/components/schemas/GlobalConstraint'
+          LocalConstraint: '#/components/schemas/LocalConstraint'
+          ComposeConstraint: '#/components/schemas/ComposeConstraint'
+          ConditionalConstraint: '#/components/schemas/ConditionalConstraint'
+          BindingConstraint: '#/components/schemas/BindingConstraint'
+      description: "Abstract constraint with a discriminator for subtypes."
+
+    ConstraintBase:
+      type: object
+      properties:
+        type:
+          type: string
+          description: "Discriminator property for sub-constraint types"
+      required:
+        - type
+
+    GlobalConstraint:
+      allOf:
+        - $ref: '#/components/schemas/ConstraintBase'
+        - type: object
+          properties:
+            inputFeature:
+              type: string
+            operator:
+              $ref: '#/components/schemas/Operator'
+            value:
+              type: number
+              format: double
+          example:
+            type: "GlobalConstraint"
+            inputFeature:
+              name: "Cost"
+            operator: ">="
+            value: 100.0
+
+    LocalConstraint:
+      allOf:
+        - $ref: '#/components/schemas/ConstraintBase'
+        - type: object
+          properties:
+            inputFeature:
+              $ref: '#/components/schemas/FeatureConstraint'
+            operator:
+              $ref: '#/components/schemas/Operator'
+            value:
+              type: number
+              format: double
+            outputFeature:
+              $ref: '#/components/schemas/FeatureConstraint'
+          example:
+            type: "LocalConstraint"
+            operator: "<="
+            value: 10
+            inputFeature:
+              feature:
+                name: "Latency"
+              tasks: []
+            outputFeature: null
+
+    ComposeConstraint:
+      allOf:
+        - $ref: '#/components/schemas/ConstraintBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: ["ComposeConstraint"]
+            composeConstraintType:
+              $ref: '#/components/schemas/ComposeConstraintType'
+            conditions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Constraint'
+          example:
+            type: "ComposeConstraint"
+            composeConstraintType: "AND"
+            conditions:
+              - type: "GlobalConstraint"
+                inputFeature:
+                  name: "Reliability"
+                operator: ">="
+                value: 0.95
+
+    ConditionalConstraint:
+      allOf:
+        - $ref: '#/components/schemas/ConstraintBase'
+        - type: object
+          properties:
+            condition:
+              $ref: '#/components/schemas/Constraint'
+            then:
+              $ref: '#/components/schemas/Constraint'
+          example:
+            type: "ConditionalConstraint"
+            condition:
+              type: "GlobalConstraint"
+              inputFeature:
+                name: "Cost"
+              operator: "<"
+              value: 200
+            then:
+              type: "LocalConstraint"
+              operator: "<="
+              value: 5
+
+    BindingConstraint:
+      allOf:
+        - $ref: '#/components/schemas/ConstraintBase'
+        - type: object
+          properties:
+            providers:
+              type: array
+              items:
+                $ref: '#/components/schemas/Task'
+            operator:
+              $ref: '#/components/schemas/Operator'
+          example:
+            type: "BindingConstraint"
+            operator: "=="
+            providers:
+              - name: "TaskA"
+
+    FeatureConstraint:
+      type: object
+      properties:
+        feature:
+          type: string
+        tasks:
+          type: array
+          items:
+            type: string
+        aggregator:
+          $ref: '#/components/schemas/AggregatorOperation'
+
+    Operator:
+      type: string
+      enum: ["<=", "<", "=", ">", ">=", "!="]
+
+    ComposeConstraintType:
+      type: string
+      enum: [AND, OR]
+
+    # ---------------
+    # Output Schemas
+    # ---------------
+    BindingList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Binding'
+
+    BindingSpace:
+      type: object
+      properties:
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Binding'
+      required: [bindings]
+
+    Binding:
+      type: object
+      properties:
+        bindingMappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BindingMapping'
+      required: [bindingMappings]
+
+    BindingMapping:
+      type: object
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        candidateService:
+          $ref: '#/components/schemas/CandidateService'
+      required: [task, candidateService]
+
+    # ---------------
+    # Async Job Schemas
+    # ---------------
+    JobAccepted:
+      type: object
+      properties:
+        jobId:
+          type: string
+        message:
+          type: string
+      required: [jobId]
+
+    JobStatus:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RUNNING, COMPLETED, FAILED]
+        message:
+          type: string
+      required: [jobId, status]
+
+    # ----------------
+    # Error Schemas
+    # ----------------
+    ValidationError:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: "VALIDATION_ERROR"
+        errorMessage:
+          type: string
+          example: "Validation failed for QACOProblem."
+        validationErrors:
+          type: array
+          items:
+            type: string
+            example: "CompositeWebService must have at least one Task."
+      required:
+        - errorCode
+        - errorMessage
+        - validationErrors
+
+    Error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+      required: [errorCode, errorMessage]
