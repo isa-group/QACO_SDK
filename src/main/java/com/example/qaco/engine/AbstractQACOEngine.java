@@ -1,4 +1,4 @@
-package com.example.qaco.solver;
+package com.example.qaco.engine;
 
 import com.example.qaco.domain.QACOProblem;
 import com.example.qaco.domain.binding.Binding;

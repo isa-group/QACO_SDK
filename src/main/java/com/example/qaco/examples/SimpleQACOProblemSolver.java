@@ -7,7 +7,7 @@ import com.example.qaco.domain.binding.BindingSpace;
 import com.example.qaco.domain.cws.CandidateService;
 import com.example.qaco.domain.cws.CompositeWebService;
 import com.example.qaco.domain.cws.Task;
-import com.example.qaco.solver.AbstractQACOEngine;
+import com.example.qaco.engine.AbstractQACOEngine;
 
 import java.util.ArrayList;
 import java.util.List;

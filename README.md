@@ -4,7 +4,7 @@
 
 - A **rich domain model** for QACO problems (Tasks, Features, Constraints, etc.).  
 - A **validation** layer to ensure inputs (QACOProblem, CompositeWebService) and outputs (Binding, BindingSpace) are consistent.  
-- An **extendable solver interface** to implement your own QACO algorithms.
+- An **extendable engine interface** to implement your own QACO algorithms and solvers.
 
 ---
 
@@ -15,7 +15,7 @@
 3. [Installation](#installation)  
 4. [Usage](#usage)  
    - [Defining a QACOProblem](#defining-a-qacoproblem)  
-   - [Implementing a Solver](#implementing-a-solver)  
+   - [Implementing an Engine](#implementing-an-engine)  
    - [Validations](#validations)  
 5. [Testing in Another Project](#testing-in-another-project)  
 6. [OpenAPI Specification (Optional)](#openapi-specification-optional)  
@@ -35,13 +35,13 @@
    - Checks graph nodes for at least one `START` and one `END`.  
    - Verifies that constraints’ features exist in the CWS and that local constraints do not mix `value` and `outputFeature` incorrectly.
 
-3. **Solvers**:  
+3. **Engines**:  
    - `QACOEngineInterface` is an interface defining two main methods: `solve(QACOProblem)` and `bindingSpace(CompositeWebService)`.  
    - `AbstractQACOEngine` provides a **default validation** mechanism for input and output.  
    - You can extend it with custom algorithms (e.g., metaheuristics, exact solvers).
 
 4. **Bindings**:  
-   - The output of a solver is a list of `Binding` objects, each containing `BindingMapping` records that map tasks to candidate services.  
+   - The output of the engine is a list of `Binding` objects, each containing `BindingMapping` records that map tasks to candidate services.  
    - A `BindingSpace` can be generated to list all possible or feasible bindings.
 
 ---
@@ -69,7 +69,7 @@ Here is a high-level view of the key classes:
   - A solver returns one or more Bindings as the **optimal solution**.
 
 - **`BindingSpace`**:  
-  - Contains a collection of possible `Binding` configurations.
+  - Contains a collection of possible `Binding` configurations. It is returned by the engine to explore the solution space.
 
 ---
 
@@ -137,14 +137,14 @@ problem.setCompositeWebService(cws);
 problem.setProblem(domainProblem);
 ```
 
-### Implementing a Solver
+### Implementing an Engine
 
 ```java
 import com.example.qaco.domain.QACOProblem;
 import com.example.qaco.domain.binding.Binding;
 import com.example.qaco.domain.binding.BindingSpace;
 import com.example.qaco.domain.cws.CompositeWebService;
-import com.example.qaco.solver.AbstractQACOEngine;
+import com.example.qaco.engine.AbstractQACOEngine;
 
 import java.util.List;
 import java.util.Optional;
