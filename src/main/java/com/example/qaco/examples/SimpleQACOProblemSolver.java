@@ -7,18 +7,18 @@ import com.example.qaco.domain.binding.BindingSpace;
 import com.example.qaco.domain.cws.CandidateService;
 import com.example.qaco.domain.cws.CompositeWebService;
 import com.example.qaco.domain.cws.Task;
-import com.example.qaco.solver.AbstractQACOProblemSolver;
+import com.example.qaco.solver.AbstractQACOEngine;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
-public class SimpleQACOProblemSolver extends AbstractQACOProblemSolver {
+public class SimpleQACOProblemSolver extends AbstractQACOEngine {
     private final Random random = new Random();
 
     @Override
-    protected Optional<List<Binding>> doSolve(QACOProblem problem) {
+    protected Optional<List<Binding>> doSolve(QACOProblem problem, Optional<Object> extraConfig) {
         // Construct a trivial solution: pick the first candidate for each task
         Binding binding = new Binding();
         binding.setBindingMappings(new ArrayList<>());
@@ -43,7 +43,7 @@ public class SimpleQACOProblemSolver extends AbstractQACOProblemSolver {
     }
 
     @Override
-    protected Optional<BindingSpace> getBindingSpace(CompositeWebService cws) {
+    protected Optional<BindingSpace> getBindingSpace(CompositeWebService cws, Optional<Object> extraConfig) {
         BindingSpace bindingSpace = new BindingSpace();
         
         // Construct a trivial binding space: all candidate services for each task

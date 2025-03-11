@@ -15,15 +15,16 @@ paths:
       description: >
         Asynchronously solves a QACOProblem.  
         - Validates the input QACOProblem (tasks, features, constraints, etc.).  
+        - Requires an engine selection (EngineType) and optional config parameters.  
         - Returns a job identifier if validation passes.  
-        - Returns a 400 error if validation fails (e.g., missing tasks, missing CompositeWebService).
+        - Returns 400 if validation fails (e.g., missing tasks, missing CompositeWebService).
       operationId: submitQACOProblem
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/QACOProblem'
+              $ref: '#/components/schemas/SolveRequest'
       responses:
         '202':
           description: Accepted - The problem is being processed asynchronously.
@@ -104,15 +105,16 @@ paths:
     post:
       summary: Submit a CompositeWebService to retrieve binding space
       description: >
-        Asynchronously calculates the binding space for a given CompositeWebService.
-        Returns a job identifier if validation passes, or a 400 error if validation fails.
+        Asynchronously calculates the binding space for a given CompositeWebService.  
+        - Requires an engine selection (EngineType) and optional config parameters.  
+        - Returns a job identifier if validation passes, or 400 if validation fails.
       operationId: submitBindingSpaceRequest
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CompositeWebService'
+              $ref: '#/components/schemas/BindingSpaceRequest'
       responses:
         '202':
           description: Accepted - The binding space is being computed asynchronously.
@@ -185,9 +187,52 @@ paths:
 
 components:
   schemas:
-    # ---------------------------
-    # Domain Schemas (simplified)
-    # ---------------------------
+    # ---------------------------------------------------------------------
+    # 1. Request Objects (with engine & config)
+    # ---------------------------------------------------------------------
+    SolveRequest:
+      type: object
+      properties:
+        engine:
+          $ref: '#/components/schemas/EngineType'
+        config:
+          $ref: '#/components/schemas/SolverConfig'
+        qacoProblem:
+          $ref: '#/components/schemas/QACOProblem'
+      required: [engine, qacoProblem]
+      description: >
+        Request body for submitting a QACOProblem with an engine choice and optional solver config.
+
+    BindingSpaceRequest:
+      type: object
+      properties:
+        engine:
+          $ref: '#/components/schemas/EngineType'
+        config:
+          $ref: '#/components/schemas/SolverConfig'
+        compositeWebService:
+          $ref: '#/components/schemas/CompositeWebService'
+      required: [engine, compositeWebService]
+      description: >
+        Request body for submitting a CompositeWebService with an engine choice and optional solver config.
+
+    EngineType:
+      type: string
+      enum: [CSP, GENETIC, GRASP]
+      description: >
+        Specifies which solver engine or algorithm to use for either
+        solving the QACOProblem or generating the BindingSpace. It requires to actually have those engines implemented in the API.
+
+    SolverConfig:
+      type: object
+      additionalProperties: true
+      description: >
+        A free-form object for passing additional configuration parameters
+        (e.g., population size, number of iterations, alpha/beta parameters, etc.).
+
+    # ---------------------------------------------------------------------
+    # 2. Existing Domain Schemas (QACOProblem, CompositeWebService, etc.)
+    # ---------------------------------------------------------------------
     QACOProblem:
       type: object
       properties:
@@ -338,7 +383,7 @@ components:
         constraints:
           type: array
           items:
-            $ref: '#/components/schemas/Constraint'  # uses the discriminator-based constraint
+            $ref: '#/components/schemas/Constraint'
       required: [name]
 
     Optimization:
@@ -387,7 +432,7 @@ components:
       enum: [SEQUENCE, LOOP, BRANCH, FORK]
 
     # -----------------------------------
-    # Detailed Constraint Schemas (with discriminator)
+    # Constraint Schemas (discriminator-based)
     # -----------------------------------
     Constraint:
       oneOf:
@@ -429,8 +474,7 @@ components:
               format: double
           example:
             type: "GlobalConstraint"
-            inputFeature:
-              name: "Cost"
+            inputFeature: "Cost"
             operator: ">="
             value: 100.0
 
@@ -453,8 +497,7 @@ components:
             operator: "<="
             value: 10
             inputFeature:
-              feature:
-                name: "Latency"
+              feature: "Latency"
               tasks: []
             outputFeature: null
 
@@ -477,8 +520,7 @@ components:
             composeConstraintType: "AND"
             conditions:
               - type: "GlobalConstraint"
-                inputFeature:
-                  name: "Reliability"
+                inputFeature: "Reliability"
                 operator: ">="
                 value: 0.95
 
@@ -495,8 +537,7 @@ components:
             type: "ConditionalConstraint"
             condition:
               type: "GlobalConstraint"
-              inputFeature:
-                name: "Cost"
+              inputFeature: "Cost"
               operator: "<"
               value: 200
             then:

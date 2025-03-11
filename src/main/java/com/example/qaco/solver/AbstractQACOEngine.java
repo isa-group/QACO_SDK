@@ -16,17 +16,17 @@ import java.util.*;
 import java.util.Optional;
 
 /**
- * An abstract base class for QACOProblemSolver implementations.
+ * An abstract base class for QACOEngineInterface implementations.
  * It provides standard validation for input (QACOProblem, CompositeWebService)
  * and output (Binding, BindingSpace).
  */
-public abstract class AbstractQACOProblemSolver implements QACOProblemSolver {
+public abstract class AbstractQACOEngine implements QACOEngineInterface {
 
     @Override
-    public Optional<List<Binding>> solve(QACOProblem problem) throws IllegalArgumentException {
+    public Optional<List<Binding>> solve(QACOProblem problem, Optional<Object> extraConfig) throws IllegalArgumentException {
         validateInput(problem);
 
-        Optional<List<Binding>> result = doSolve(problem);
+        Optional<List<Binding>> result = doSolve(problem, extraConfig);
 
         // Validate each Binding in the returned list
         result.ifPresent(bindings -> bindings.forEach(this::validateOutput));
@@ -37,7 +37,7 @@ public abstract class AbstractQACOProblemSolver implements QACOProblemSolver {
     /**
      * Perform the actual solving. Must be implemented by concrete solvers.
      */
-    protected abstract Optional<List<Binding>> doSolve(QACOProblem problem);
+    protected abstract Optional<List<Binding>> doSolve(QACOProblem problem, Optional<Object> extraConfig);
 
     /**
      * Validate the input problem to ensure it's well-formed.
@@ -329,10 +329,10 @@ public abstract class AbstractQACOProblemSolver implements QACOProblemSolver {
     }
 
     @Override
-    public Optional<BindingSpace> bindingSpace(CompositeWebService cws) throws IllegalArgumentException {
+    public Optional<BindingSpace> bindingSpace(CompositeWebService cws, Optional<Object> extraConfig) throws IllegalArgumentException {
         validateInput(cws);
 
-        Optional<BindingSpace> result = getBindingSpace(cws);
+        Optional<BindingSpace> result = getBindingSpace(cws, extraConfig);
 
         // Validate each Binding in the returned BindingSpace
         result.ifPresent(bindingSpace -> {
@@ -348,5 +348,5 @@ public abstract class AbstractQACOProblemSolver implements QACOProblemSolver {
     /**
      * Get the binding space for the given CompositeWebService.
      */
-    protected abstract Optional<BindingSpace> getBindingSpace(CompositeWebService cws);
+    protected abstract Optional<BindingSpace> getBindingSpace(CompositeWebService cws, Optional<Object> extraConfig);
 }

@@ -36,8 +36,8 @@
    - Verifies that constraints’ features exist in the CWS and that local constraints do not mix `value` and `outputFeature` incorrectly.
 
 3. **Solvers**:  
-   - `QACOProblemSolver` is an interface defining two main methods: `solve(QACOProblem)` and `bindingSpace(CompositeWebService)`.  
-   - `AbstractQACOProblemSolver` provides a **default validation** mechanism for input and output.  
+   - `QACOEngineInterface` is an interface defining two main methods: `solve(QACOProblem)` and `bindingSpace(CompositeWebService)`.  
+   - `AbstractQACOEngine` provides a **default validation** mechanism for input and output.  
    - You can extend it with custom algorithms (e.g., metaheuristics, exact solvers).
 
 4. **Bindings**:  
@@ -144,12 +144,12 @@ import com.example.qaco.domain.QACOProblem;
 import com.example.qaco.domain.binding.Binding;
 import com.example.qaco.domain.binding.BindingSpace;
 import com.example.qaco.domain.cws.CompositeWebService;
-import com.example.qaco.solver.AbstractQACOProblemSolver;
+import com.example.qaco.solver.AbstractQACOEngine;
 
 import java.util.List;
 import java.util.Optional;
 
-public class MyQACOProblemSolver extends AbstractQACOProblemSolver {
+public class MyQACOEngine extends AbstractQACOEngine {
 
     @Override
     protected Optional<List<Binding>> doSolve(QACOProblem problem) {
@@ -171,11 +171,11 @@ public class MyQACOProblemSolver extends AbstractQACOProblemSolver {
 When you call:
 
 ```java
-MyQACOProblemSolver solver = new MyQACOProblemSolver();
-Optional<List<Binding>> bindings = solver.solve(problem);
+MyQACOEngine engine = new MyQACOEngine();
+Optional<List<Binding>> bindings = engine.solve(problem);
 ```
 
-the **`AbstractQACOProblemSolver`** runs various checks:
+the **`AbstractQACOEngine`** runs various checks:
 
 1. **CWS** must have at least one task and one candidate service.  
 2. **Graph** must have at least one `START` and `END` node (if a graph is provided).  
@@ -189,7 +189,7 @@ If any validation fails, an `IllegalArgumentException` or `IllegalStateException
 
 ## OpenAPI Specification (Optional)
 
-If you want to expose your QACO solver as a **web service**, refer to the provided **OpenAPI** spec (see [`OpenAPI_spec.yaml`](./OpenAPI.yaml)). It describes:
+If you want to expose your QACO engine as a **web service**, refer to the provided **OpenAPI** spec (see [`OpenAPI_spec.yaml`](./OpenAPI.yaml)). It describes:
 
 - **POST** `/qaco/solve` to submit a `QACOProblem`.  
 - **GET** `/qaco/solve/{jobId}` to retrieve the solution asynchronously.  
